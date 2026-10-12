@@ -1093,7 +1093,7 @@ impl<'de> serde::Deserialize<'de> for ClearDeviceMetricsOverrideParams {
 ///
 ///<pre>Clears the overridden device metrics.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct ClearDeviceMetricsOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.clearDeviceMetricsOverride/returns。
@@ -1159,7 +1159,7 @@ impl<'de> serde::Deserialize<'de> for ClearDeviceOrientationOverrideParams {
 ///
 ///<pre>Clears the overridden Device Orientation.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 DeviceOrientation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct ClearDeviceOrientationOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.clearDeviceOrientationOverride/returns。
@@ -1225,7 +1225,7 @@ impl<'de> serde::Deserialize<'de> for ClearGeolocationOverrideParams {
 ///
 ///<pre>Clears the overridden Geolocation Position and Error.</pre>
 ///
-///此项已 deprecated，保留用于旧端点兼容。
+///此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct ClearGeolocationOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.clearGeolocationOverride/returns。
@@ -1681,7 +1681,7 @@ impl<'de> serde::Deserialize<'de> for DeleteCookieParams {
 ///
 ///<pre>Deletes browser cookie with given name, domain and path.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Network 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct DeleteCookie;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.deleteCookie/returns。
@@ -6093,7 +6093,7 @@ impl<'de> serde::Deserialize<'de> for SetDeviceMetricsOverrideParams {
 ///window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
 ///query results).</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetDeviceMetricsOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.setDeviceMetricsOverride/returns。
@@ -6225,7 +6225,7 @@ impl<'de> serde::Deserialize<'de> for SetDeviceOrientationOverrideParams {
 ///
 ///<pre>Overrides the Device Orientation.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 DeviceOrientation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetDeviceOrientationOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.setDeviceOrientationOverride/returns。
@@ -6902,7 +6902,7 @@ impl<'de> serde::Deserialize<'de> for SetGeolocationOverrideParams {
 ///<pre>Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
 ///unavailable.</pre>
 ///
-///此项已 deprecated，保留用于旧端点兼容。
+///此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetGeolocationOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.setGeolocationOverride/returns。
@@ -7693,7 +7693,7 @@ impl<'de> serde::Deserialize<'de> for SetTouchEmulationEnabledParams {
 ///
 ///<pre>Toggles mouse event-based touch event emulation.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetTouchEmulationEnabled;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Page.command.setTouchEmulationEnabled/returns。

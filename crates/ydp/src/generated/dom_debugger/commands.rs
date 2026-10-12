@@ -460,7 +460,7 @@ impl<'de> serde::Deserialize<'de> for RemoveInstrumentationBreakpointParams {
 ///
 ///<pre>Removes breakpoint on particular native event.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 EventBreakpoints 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct RemoveInstrumentationBreakpoint;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：DOMDebugger.command.removeInstrumentationBreakpoint/returns。
@@ -960,7 +960,7 @@ impl<'de> serde::Deserialize<'de> for SetInstrumentationBreakpointParams {
 ///
 ///<pre>Sets breakpoint on particular native event.</pre>
 ///
-///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 EventBreakpoints 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetInstrumentationBreakpoint;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：DOMDebugger.command.setInstrumentationBreakpoint/returns。

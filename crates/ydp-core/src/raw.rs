@@ -44,6 +44,15 @@ impl RawJson {
     /// assert_eq!(json.as_bytes(), b"null");
     /// # Ok::<(), ydp_core::Error>(())
     /// ```
+    /// 借用不能超过 `RawJson` owner：
+    /// ```compile_fail
+    /// let bytes = {
+    ///     let json = ydp_core::RawJson::from_bytes(bytes::Bytes::from_static(b"null"))?;
+    ///     json.as_bytes()
+    /// };
+    /// assert_eq!(bytes, b"null");
+    /// # Ok::<(), ydp_core::Error>(())
+    /// ```
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }

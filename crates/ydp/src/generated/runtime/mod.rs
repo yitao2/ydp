@@ -430,7 +430,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Enables or disables async call stacks tracking.</pre>
     ///
-    ///
+    ///此命令由协议重定向到 Debugger 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;

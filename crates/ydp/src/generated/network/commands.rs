@@ -4448,7 +4448,7 @@ impl<'de> serde::Deserialize<'de> for SetUserAgentOverrideParams {
 ///
 ///<pre>Allows overriding user agent with the given string.</pre>
 ///
-///
+///此命令由协议重定向到 Emulation 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetUserAgentOverride;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Network.command.setUserAgentOverride/returns。

@@ -124,6 +124,35 @@ async fn fragmented_text_ping_and_bidirectional_close() {
     }).await;
 }
 
+#[tokio::test]
+async fn peer_close_is_answered_once() {
+    bounded(async {
+        let (listener, url) = new_listener().await;
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut ws = accept_async(socket).await.unwrap();
+            ws.send(Message::Close(None)).await.unwrap();
+            let mut close_count = 0usize;
+            while let Some(message) = ws.next().await {
+                match message {
+                    Ok(Message::Close(_)) => close_count += 1,
+                    Err(tokio_tungstenite::tungstenite::Error::ConnectionClosed) => break,
+                    Err(error) => panic!("关闭握手出现非预期错误：{error}"),
+                    Ok(other) => panic!("关闭握手出现非预期消息：{other:?}"),
+                }
+            }
+            close_count
+        });
+        let (connection, mut events) = Connection::connect(&url, ConnectOptions::default())
+            .await
+            .unwrap();
+        assert!(events.next().await.unwrap().is_err());
+        assert!(connection.closed().await.driver_resources_released);
+        assert_eq!(server.await.unwrap(), 1);
+    })
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn peer_close_and_binary_rejection() {
     bounded(async {
@@ -243,6 +272,37 @@ async fn headers_limits_and_redirect_are_not_followed() {
         assert!(futures_util::poll!(accept.as_mut()).is_pending());
     })
     .await;
+}
+
+#[test]
+fn diagnostics_hide_headers_ca_payload_and_transport_source() {
+    let secret = "credential-and-payload-secret";
+    let mut options = ConnectOptions::default();
+    options
+        .headers
+        .push(("Authorization".into(), secret.into()));
+    options.tls.additional_ca_pem = secret.as_bytes().to_vec();
+    assert!(!format!("{options:?}").contains(secret));
+
+    let payload = ydp_core::RawJson::from_bytes(Bytes::from(
+        serde_json::json!({"token": secret}).to_string(),
+    ))
+    .unwrap();
+    assert!(!format!("{payload:?}").contains(secret));
+    let protocol = ydp_core::Error::new(ErrorKind::Protocol {
+        code: -1,
+        message: "拒绝".into(),
+        data: Some(payload),
+    });
+    assert!(!format!("{protocol:?}").contains(secret));
+    assert!(!protocol.to_string().contains(secret));
+
+    let transport = ydp_core::TransportError::new(std::io::Error::other(secret));
+    assert!(!format!("{transport:?}").contains(secret));
+    assert!(!transport.to_string().contains(secret));
+    let wrapped = ydp_core::Error::with_source(ErrorKind::Transport, transport);
+    assert!(!format!("{wrapped:?}").contains(secret));
+    assert!(!wrapped.to_string().contains(secret));
 }
 
 #[tokio::test]
@@ -510,6 +570,45 @@ async fn non_loopback_tls_and_authorization_header() {
         assert_eq!(response.value, "remote-tls");
         assert!(connection.close().await.driver_resources_released);
         server.await.unwrap();
+    })
+    .await;
+}
+
+#[cfg(feature = "rustls")]
+#[tokio::test]
+#[ignore = "需要通过 YDP_EXTERNAL_WSS_URL、YDP_EXTERNAL_CA_PEM 和 YDP_EXTERNAL_AUTHORIZATION 指定异地主机 fixture"]
+async fn external_tls_endpoint_validates_ca_hostname_and_authorization() {
+    bounded(async {
+        let url = std::env::var("YDP_EXTERNAL_WSS_URL").expect("必须提供异地主机 WSS URL");
+        assert!(url.starts_with("wss://"));
+        let ca_path = std::env::var("YDP_EXTERNAL_CA_PEM").expect("必须提供自定义 CA 文件路径");
+        let authorization = std::env::var("YDP_EXTERNAL_AUTHORIZATION")
+            .expect("必须提供异地主机 fixture 的 Authorization 值");
+        let ca = std::fs::read(ca_path).expect("必须能读取自定义 CA 文件");
+        let value = format!("ydp-external-tls-{}", std::process::id());
+        let mut rejected = ConnectOptions::default();
+        rejected.tls.additional_ca_pem = ca.clone();
+        rejected
+            .headers
+            .push(("Authorization".into(), format!("{authorization}-invalid")));
+        assert!(Connection::connect(&url, rejected).await.is_err());
+
+        let mut options = ConnectOptions::default();
+        options.tls.additional_ca_pem = ca;
+        options
+            .headers
+            .push(("Authorization".into(), authorization));
+        let (connection, events) = Connection::connect(&url, options).await.unwrap();
+        drop(events);
+        let response = connection
+            .root_session()
+            .send::<Echo>(Params {
+                value: value.clone(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(response.value, value);
+        assert!(connection.close().await.driver_resources_released);
     })
     .await;
 }

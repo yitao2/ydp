@@ -87,7 +87,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Removes breakpoint on particular native event.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 EventBreakpoints 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -195,7 +195,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Sets breakpoint on particular native event.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 EventBreakpoints 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;

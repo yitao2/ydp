@@ -173,7 +173,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Clears the overridden device metrics.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -195,7 +195,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Clears the overridden Device Orientation.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 DeviceOrientation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -217,7 +217,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Clears the overridden Geolocation Position and Error.</pre>
     ///
-    ///此项已 deprecated，保留用于旧端点兼容。
+    ///此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -296,7 +296,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Deletes browser cookie with given name, domain and path.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Network 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -927,7 +927,7 @@ impl<'a> Domain<'a> {
     ///window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
     ///query results).</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -949,7 +949,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Overrides the Device Orientation.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 DeviceOrientation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -1056,7 +1056,7 @@ impl<'a> Domain<'a> {
     ///<pre>Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
     ///unavailable.</pre>
     ///
-    ///此项已 deprecated，保留用于旧端点兼容。
+    ///此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -1197,7 +1197,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Toggles mouse event-based touch event emulation.</pre>
     ///
-    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。
+    ///此项为 experimental，端点可能不支持。此项已 deprecated，保留用于旧端点兼容。此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;

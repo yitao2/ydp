@@ -74,6 +74,51 @@
           "x-cdp-rs": {
             "nullable": true
           }
+        },
+        {
+          "id": "WireShapes",
+          "type": "object",
+          "properties": [
+            {
+              "name": "stringValue",
+              "type": "string"
+            },
+            {
+              "name": "integerValue",
+              "type": "integer"
+            },
+            {
+              "name": "numberValue",
+              "type": "number"
+            },
+            {
+              "name": "booleanValue",
+              "type": "boolean"
+            },
+            {
+              "name": "anyValue",
+              "type": "any"
+            },
+            {
+              "name": "binaryValue",
+              "type": "binary"
+            },
+            {
+              "name": "openMap",
+              "type": "object"
+            },
+            {
+              "name": "integerMap",
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              }
+            },
+            {
+              "name": "emptyObject",
+              "$ref": "Closed"
+            }
+          ]
         }
       ],
       "commands": [

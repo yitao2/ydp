@@ -48,9 +48,9 @@ pub const GENERATED_METADATA: GeneratedMetadata = GeneratedMetadata {
     binding_package: "ydp_echo_tests",
     inputs: &[SourceMetadata {
         path: "echo.json",
-        sha256: "a78fe25736c5eb92b393935e699d4f3cb777562371a1d68695b98325e3eec9bd",
+        sha256: "3b31c30f07f40521d13ae52d05fa26d5b7480734e13106c8001b762973c4f083",
         version_major: "1",
         version_minor: "0",
     }],
-    configuration_sha256: "d43b55fa14043ae0d79b41c9d11953c675efc239af5b2511dc79e28c3fa57869",
+    configuration_sha256: "25d923147d81a63fef945af6ad7ef5f7a31dbbfa0338497ead795c0eb9e77b40",
 };

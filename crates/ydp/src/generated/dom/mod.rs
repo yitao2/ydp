@@ -627,7 +627,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Hides any highlight.</pre>
     ///
-    ///
+    ///此命令由协议重定向到 Overlay 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -648,7 +648,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Highlights DOM node.</pre>
     ///
-    ///
+    ///此命令由协议重定向到 Overlay 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;
@@ -669,7 +669,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Highlights given rectangle.</pre>
     ///
-    ///
+    ///此命令由协议重定向到 Overlay 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;

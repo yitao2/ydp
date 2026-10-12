@@ -394,3 +394,113 @@ impl<'de> serde::Deserialize<'de> for Record {
         d.deserialize_map(Visitor)
     }
 }
+///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Echo.type.WireShapes。
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WireShapes {
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/stringValue。
+    #[serde(rename = "stringValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub string_value: String,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/integerValue。
+    #[serde(rename = "integerValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub integer_value: i64,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/numberValue。
+    #[serde(rename = "numberValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub number_value: ydp_core::FiniteF64,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/booleanValue。
+    #[serde(rename = "booleanValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub boolean_value: bool,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/anyValue。
+    #[serde(rename = "anyValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub any_value: serde_json::Value,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/binaryValue。
+    #[serde(rename = "binaryValue")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub binary_value: String,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/openMap。
+    #[serde(rename = "openMap")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub open_map: std::collections::BTreeMap<String, serde_json::Value>,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/integerMap。
+    #[serde(rename = "integerMap")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub integer_map: std::collections::BTreeMap<String, i64>,
+    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/emptyObject。
+    #[serde(rename = "emptyObject")]
+    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+    pub empty_object: crate::echo::types::Closed,
+}
+impl<'de> serde::Deserialize<'de> for WireShapes {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = WireShapes;
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("协议 object")
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                a: A,
+            ) -> Result<Self::Value, A::Error> {
+                #[derive(serde::Deserialize)]
+                struct Fields {
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/stringValue。
+                    #[serde(rename = "stringValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub string_value: String,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/integerValue。
+                    #[serde(rename = "integerValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub integer_value: i64,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/numberValue。
+                    #[serde(rename = "numberValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub number_value: ydp_core::FiniteF64,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/booleanValue。
+                    #[serde(rename = "booleanValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub boolean_value: bool,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/anyValue。
+                    #[serde(rename = "anyValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub any_value: serde_json::Value,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/binaryValue。
+                    #[serde(rename = "binaryValue")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub binary_value: String,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/openMap。
+                    #[serde(rename = "openMap")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub open_map: std::collections::BTreeMap<String, serde_json::Value>,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/integerMap。
+                    #[serde(rename = "integerMap")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub integer_map: std::collections::BTreeMap<String, i64>,
+                    ///必需字段；缺失或类型错误导致解码失败。协议来源：Echo.type.WireShapes/properties/emptyObject。
+                    #[serde(rename = "emptyObject")]
+                    #[serde(deserialize_with = "ydp_core::binding_support::required")]
+                    pub empty_object: crate::echo::types::Closed,
+                }
+                let fields = <Fields as serde::Deserialize>::deserialize(
+                    serde::de::value::MapAccessDeserializer::new(a),
+                )?;
+                Ok(WireShapes {
+                    string_value: fields.string_value,
+                    integer_value: fields.integer_value,
+                    number_value: fields.number_value,
+                    boolean_value: fields.boolean_value,
+                    any_value: fields.any_value,
+                    binary_value: fields.binary_value,
+                    open_map: fields.open_map,
+                    integer_map: fields.integer_map,
+                    empty_object: fields.empty_object,
+                })
+            }
+        }
+        d.deserialize_map(Visitor)
+    }
+}

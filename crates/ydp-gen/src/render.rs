@@ -158,6 +158,9 @@ impl Compiler<'_> {
         if flag(obj, "deprecated", path)? {
             text.push_str("此项已 deprecated，保留用于旧端点兼容。");
         }
+        if let Some(target) = obj.get("redirect").and_then(Value::as_str) {
+            text.push_str(&format!("此命令由协议重定向到 {target} 域处理。"));
+        }
         Ok(text)
     }
     fn configured(&mut self, path: &str, fallback: &str, camel: bool) -> Result<String> {
@@ -1078,8 +1081,9 @@ fn formatted(source: &str) -> Result<String> {
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ));
     }
-    String::from_utf8(output.stdout)
-        .map_err(|e| error("Output.Formatter", "rustfmt", e.to_string()))
+    let formatted = String::from_utf8(output.stdout)
+        .map_err(|e| error("Output.Formatter", "rustfmt", e.to_string()))?;
+    Ok(formatted.replace("\r\n", "\n").replace('\r', "\n"))
 }
 /// 统一语义检查和 Rust 输出，不执行文件写入；集成测试对独立生成进行字节比较。
 pub(super) fn compile(
@@ -1286,5 +1290,17 @@ fn normalize_model(value: &Value) -> Value {
         ),
         Value::Array(values) => Value::Array(values.iter().map(normalize_model).collect()),
         _ => value.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // 防止多平台格式化换行符不统一
+    #[test]
+    fn formatted_output_uses_lf_on_all_platforms() {
+        let output = super::formatted("").unwrap();
+
+        assert_eq!(output, "\n");
+        assert!(!output.contains('\r'));
     }
 }

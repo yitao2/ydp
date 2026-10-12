@@ -89,6 +89,46 @@ fn r37_r38_named_nullable_and_closed_maps_preserve_shapes() {
 }
 
 #[test]
+fn r37_r39_all_wire_shapes_and_numeric_boundaries_round_trip() {
+    use ydp_echo_tests::echo::types::WireShapes;
+
+    let source = format!(
+        r#"{{"stringValue":"文本","integerValue":{},"numberValue":1.0000000000000002,"booleanValue":true,"anyValue":[null,{{"nested":7}}],"binaryValue":"AAECAw==","openMap":{{"text":"value","flag":false}},"integerMap":{{"min":{},"max":{}}},"emptyObject":{{}},"unknown":42}}"#,
+        i64::MIN,
+        i64::MIN,
+        i64::MAX
+    );
+    let decoded: WireShapes = serde_json::from_str(&source).unwrap();
+    assert_eq!(decoded.string_value, "文本");
+    assert_eq!(decoded.integer_value, i64::MIN);
+    assert_eq!(
+        decoded.number_value.get().to_bits(),
+        1.0000000000000002_f64.to_bits()
+    );
+    assert!(decoded.boolean_value);
+    assert_eq!(decoded.any_value[1]["nested"], 7);
+    assert_eq!(decoded.binary_value, "AAECAw==");
+    assert_eq!(decoded.open_map["text"], "value");
+    assert_eq!(decoded.integer_map["min"], i64::MIN);
+    assert_eq!(decoded.integer_map["max"], i64::MAX);
+
+    let encoded = serde_json::to_value(decoded).unwrap();
+    assert_eq!(encoded["integerValue"], i64::MIN);
+    assert_eq!(
+        encoded["numberValue"].as_f64().unwrap().to_bits(),
+        1.0000000000000002_f64.to_bits()
+    );
+    assert_eq!(encoded["anyValue"][0], serde_json::Value::Null);
+    assert_eq!(encoded["binaryValue"], "AAECAw==");
+    assert_eq!(encoded["integerMap"]["max"], i64::MAX);
+    assert_eq!(encoded["emptyObject"], serde_json::json!({}));
+    assert!(encoded.get("unknown").is_none());
+
+    assert!(serde_json::from_str::<i64>("9223372036854775808").is_err());
+    assert!(serde_json::from_str::<i64>("-9223372036854775809").is_err());
+}
+
+#[test]
 fn r40_named_strings_and_known_unknown_enum_round_trip() {
     use ydp_echo_tests::echo::types::{Label, Mode};
     let label = Label::new("标签".into());

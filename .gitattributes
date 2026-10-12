@@ -1,2 +1,5 @@
 # 上游固定快照保持原始字节，不要求删除源文件已有的末尾空行。
-protocol/official/** whitespace=-blank-at-eof
+protocol/official/** -text whitespace=-blank-at-eof
+
+# 生成代码：统一 LF
+crates/ydp/src/generated/** text eol=lf

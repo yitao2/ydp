@@ -3576,7 +3576,7 @@ impl<'de> serde::Deserialize<'de> for SetAsyncCallStackDepthParams {
 ///
 ///<pre>Enables or disables async call stacks tracking.</pre>
 ///
-///
+///此命令由协议重定向到 Debugger 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct SetAsyncCallStackDepth;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：Runtime.command.setAsyncCallStackDepth/returns。

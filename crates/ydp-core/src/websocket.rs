@@ -408,6 +408,9 @@ mod tests {
         let mut remaining = Vec::new();
         peer_io.read_to_end(&mut remaining).await.unwrap();
         assert!(remaining.len() <= 128);
+        assert_eq!(first[0] & 0x0f, 1);
+        // 首个大文本帧仍未写完，传输即被销毁；字节流中没有追加第二个 Close 帧。
+        assert!(remaining.len() < 256 * 1024);
     }
 
     #[test]

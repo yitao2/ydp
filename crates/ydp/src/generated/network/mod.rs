@@ -731,7 +731,7 @@ impl<'a> Domain<'a> {
     ///
     ///<pre>Allows overriding user agent with the given string.</pre>
     ///
-    ///
+    ///此命令由协议重定向到 Emulation 域处理。
     ///
     ///```no_run
     ///use ydp::SessionDomains as _;

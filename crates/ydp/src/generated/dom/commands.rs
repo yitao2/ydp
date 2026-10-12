@@ -4210,7 +4210,7 @@ impl<'de> serde::Deserialize<'de> for HideHighlightParams {
 ///
 ///<pre>Hides any highlight.</pre>
 ///
-///
+///此命令由协议重定向到 Overlay 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct HideHighlight;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：DOM.command.hideHighlight/returns。
@@ -4276,7 +4276,7 @@ impl<'de> serde::Deserialize<'de> for HighlightNodeParams {
 ///
 ///<pre>Highlights DOM node.</pre>
 ///
-///
+///此命令由协议重定向到 Overlay 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct HighlightNode;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：DOM.command.highlightNode/returns。
@@ -4342,7 +4342,7 @@ impl<'de> serde::Deserialize<'de> for HighlightRectParams {
 ///
 ///<pre>Highlights given rectangle.</pre>
 ///
-///
+///此命令由协议重定向到 Overlay 域处理。
 #[derive(Debug, Clone, Copy)]
 pub struct HighlightRect;
 ///拥有型协议数据；Clone 复制字段，未知 object 字段容忍但不保留。协议来源：DOM.command.highlightRect/returns。

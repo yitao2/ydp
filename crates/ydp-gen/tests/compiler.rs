@@ -158,6 +158,55 @@ fn rust_name_collisions_and_dangling_refs_fail() {
         "Reference.Missing"
     );
 }
+
+#[test]
+fn inline_export_and_facade_name_collisions_are_explicit() {
+    let mut v = basic();
+    v["domains"][0]["types"] = json!([{"id":"URL","type":"string"},{"id":"Url","type":"string"}]);
+    assert_eq!(
+        build(fixture(v).path()).expect_err("导出类型冲突").code,
+        "Naming.Collision"
+    );
+
+    let mut v = basic();
+    v["domains"][0]["commands"]
+        .as_array_mut()
+        .expect("命令")
+        .push(json!({"name":"echoParams"}));
+    assert_eq!(
+        build(fixture(v).path()).expect_err("内联参数类型冲突").code,
+        "Naming.Collision"
+    );
+
+    let mut v = basic();
+    v["domains"]
+        .as_array_mut()
+        .expect("域")
+        .push(json!({"domain":"echo_","commands":[{"name":"ping"}]}));
+    assert_eq!(
+        build(fixture(v).path())
+            .expect_err("facade 域方法冲突")
+            .code,
+        "Naming.Collision"
+    );
+}
+
+#[test]
+fn schema_lifecycle_flags_and_redirect_are_preserved_in_generated_docs() {
+    let mut v = basic();
+    let command = &mut v["domains"][0]["commands"][0];
+    command["experimental"] = json!(true);
+    command["deprecated"] = json!(true);
+    command["redirect"] = json!("Other");
+    let output = build(fixture(v).path()).expect("生命周期元数据");
+    let commands = &output.files["echo/commands.rs"];
+    let facade = &output.files["echo/mod.rs"];
+    for source in [commands, facade] {
+        assert!(source.contains("此项为 experimental"));
+        assert!(source.contains("此项已 deprecated"));
+        assert!(source.contains("此命令由协议重定向到 Other 域处理"));
+    }
+}
 #[test]
 fn forward_cross_domain_reference_and_named_identity() {
     let mut v = basic();
@@ -574,6 +623,43 @@ fn source_reordering_is_byte_deterministic_and_rust_only_diff_is_distinct() {
     .expect("diff");
     assert_eq!(diff.changes.len(), 1);
     assert!(!diff.changes[0].wire_changed && diff.changes[0].rust_changed);
+}
+
+#[test]
+fn wire_diff_classification_is_symmetric_for_change_add_and_remove() {
+    let old = fixture(basic());
+    let mut changed = basic();
+    changed["domains"][0]["commands"][0]["parameters"] = json!([
+        {"name":"text","type":"string"},
+        {"name":"count","type":"integer"}
+    ]);
+    changed["domains"][0]["commands"]
+        .as_array_mut()
+        .expect("命令")
+        .push(json!({"name":"added","returns":[{"name":"ok","type":"boolean"}]}));
+    let new = fixture(changed);
+    let old_bundle = load_manifest(&old.path().join("protocol.toml")).expect("旧");
+    let new_bundle = load_manifest(&new.path().join("protocol.toml")).expect("新");
+    let forward = ydp_gen::diff(&old_bundle, &new_bundle).expect("正向 diff");
+    let reverse = ydp_gen::diff(&new_bundle, &old_bundle).expect("反向 diff");
+    assert_eq!(forward.changes.len(), 2);
+    assert_eq!(reverse.changes.len(), 2);
+    for symbol in ["Echo.command.echo", "Echo.command.added"] {
+        let a = forward
+            .changes
+            .iter()
+            .find(|change| change.symbol == symbol)
+            .unwrap();
+        let b = reverse
+            .changes
+            .iter()
+            .find(|change| change.symbol == symbol)
+            .unwrap();
+        assert!(a.wire_changed && a.rust_changed);
+        assert!(b.wire_changed && b.rust_changed);
+        assert_eq!(a.old_sha256, b.new_sha256);
+        assert_eq!(a.new_sha256, b.old_sha256);
+    }
 }
 
 #[test]

@@ -2139,6 +2139,75 @@ mod tests {
         joined(&c).await;
         assert_eq!(drops.load(Ordering::SeqCst), 2);
     }
+    #[tokio::test]
+    async fn out_of_order_duplicate_and_unknown_responses_transfer_each_request_once() {
+        let (c, events, _) = fixture(Default::default());
+        drop(events);
+        let shared = &c.lease.shared;
+        let mut first = Box::pin(c.root_session().send::<Echo>(Payload { value: 1 }));
+        let mut second = Box::pin(c.root_session().send::<Echo>(Payload { value: 2 }));
+        let mut third = Box::pin(c.root_session().send::<Echo>(Payload { value: 3 }));
+        assert!(poll!(&mut first).is_pending());
+        assert!(poll!(&mut second).is_pending());
+        assert!(poll!(&mut third).is_pending());
+        let first_id = first.request_id().unwrap().get();
+        let second_id = second.request_id().unwrap().get();
+        let third_id = third.request_id().unwrap().get();
+
+        response(shared, second_id, 20);
+        response(shared, 987_654, 99);
+        response(shared, first_id, 10);
+        response(shared, second_id, 200);
+        response(shared, third_id, 30);
+
+        assert_eq!(first.await.unwrap().value, 10);
+        assert_eq!(second.await.unwrap().value, 20);
+        assert_eq!(third.await.unwrap().value, 30);
+        assert!(shared.control().pending.is_empty());
+        assert_eq!(shared.control().counts[0].requests, 0);
+        assert_eq!(c.latest_receive_seq().unwrap().get(), 5);
+        joined(&c).await;
+    }
+    #[tokio::test]
+    async fn cancellation_at_cold_admission_publish_and_delivery_boundaries_releases_owners() {
+        let mut options = RuntimeOptions::default();
+        options.limits.normal.requests = 1;
+        options.limits.normal.outbound_slots = 2;
+        let (c, events, _) = fixture(options);
+        drop(events);
+        let shared = &c.lease.shared;
+
+        let cold = c.root_session().send::<Echo>(Payload { value: 0 });
+        drop(cold);
+        assert_eq!(shared.control().counts[0].requests, 0);
+
+        let mut published = Box::pin(c.root_session().send::<Echo>(Payload { value: 1 }));
+        assert!(poll!(&mut published).is_pending());
+        let mut admission = Box::pin(c.root_session().send::<Echo>(Payload { value: 2 }));
+        assert!(poll!(&mut admission).is_pending());
+        assert_eq!(shared.control().counts[0].waiters, 1);
+        drop(admission);
+        assert_eq!(shared.control().counts[0].waiters, 0);
+
+        drop(published);
+        assert!(shared.control().pending.is_empty());
+        assert_eq!(shared.control().counts[0].requests, 0);
+        assert_eq!(shared.control().counts[0].slots, 1);
+        drop(shared.pop());
+        assert_eq!(shared.control().counts[0].slots, 0);
+        assert_eq!(shared.control().counts[0].bytes, 0);
+
+        let mut delivered = Box::pin(c.root_session().send::<Echo>(Payload { value: 3 }));
+        assert!(poll!(&mut delivered).is_pending());
+        response(shared, delivered.request_id().unwrap().get(), 30);
+        assert!(shared.control().pending.is_empty());
+        assert_eq!(shared.control().counts[0].requests, 1);
+        assert!(shared.wire_budget.used() > 0);
+        drop(delivered);
+        assert_eq!(shared.control().counts[0].requests, 0);
+        assert_eq!(shared.wire_budget.used(), 0);
+        joined(&c).await;
+    }
     #[tokio::test(start_paused = true)]
     async fn queued_response_loses_to_deadline_and_fuses() {
         let (c, events, _) = fixture(Default::default());
@@ -2270,6 +2339,115 @@ mod tests {
         joined(&c).await;
     }
     #[tokio::test]
+    async fn local_session_close_has_no_detach_side_effect_and_preserves_published_frame() {
+        let (c, events, _) = fixture(Default::default());
+        drop(events);
+        let child = c
+            .adopt_session(SessionId::new("child-local-close".into()).unwrap())
+            .unwrap();
+        let mut request = Box::pin(child.send::<Echo>(Payload { value: 1 }));
+        assert!(poll!(&mut request).is_pending());
+        let before = {
+            let control = c.lease.shared.control();
+            assert_eq!(control.queues[0].len(), 1);
+            control.queues[0].front().unwrap().bytes.clone()
+        };
+
+        child.close();
+
+        assert!(matches!(
+            request.await.unwrap_err().kind,
+            ErrorKind::SessionClosed
+        ));
+        let after = {
+            let control = c.lease.shared.control();
+            assert_eq!(control.queues[0].len(), 1);
+            control.queues[0].front().unwrap().bytes.clone()
+        };
+        assert_eq!(after, before);
+        let wire = std::str::from_utf8(&after).unwrap();
+        assert!(wire.contains("Echo.echo"));
+        assert!(!wire.contains("detach"));
+        assert_eq!(c.state(), ConnectionState::Open);
+        joined(&c).await;
+    }
+    #[tokio::test]
+    async fn connection_close_arbitrates_publish_response_and_registration_orders() {
+        // 先关闭的 gate 同时拒绝请求、Session 和订阅，迟到响应不再推进接收序号。
+        let (closed_first, mut initial, _) = fixture(Default::default());
+        joined(&closed_first).await;
+        assert!(matches!(
+            closed_first
+                .root_session()
+                .send::<Echo>(Payload { value: 1 })
+                .await
+                .unwrap_err()
+                .kind,
+            ErrorKind::ConnectionClosed
+        ));
+        let subscription_error = closed_first.raw_events(Default::default()).err().unwrap();
+        assert!(matches!(
+            subscription_error.kind,
+            ErrorKind::ConnectionClosed
+        ));
+        let adoption_error = closed_first
+            .adopt_session(SessionId::new("after-close".into()).unwrap())
+            .err()
+            .unwrap();
+        assert!(matches!(adoption_error.kind, ErrorKind::ConnectionClosed));
+        receive(
+            &closed_first.lease.shared,
+            Bytes::from_static(br#"{"id":1,"result":{"value":1}}"#),
+        )
+        .unwrap();
+        assert_eq!(closed_first.latest_receive_seq(), None);
+        assert!(matches!(
+            initial.next().await.unwrap().unwrap_err().kind,
+            ErrorKind::ConnectionClosed
+        ));
+
+        // 发布先赢得仲裁时，关闭终结 pending 并丢弃尚未写出的帧，许可全部归还。
+        let (published_first, events, _) = fixture(Default::default());
+        drop(events);
+        let mut published = Box::pin(
+            published_first
+                .root_session()
+                .send::<Echo>(Payload { value: 2 }),
+        );
+        assert!(poll!(&mut published).is_pending());
+        assert_eq!(published.submission(), Submission::PossiblySent);
+        joined(&published_first).await;
+        assert!(matches!(
+            published.await.unwrap_err().kind,
+            ErrorKind::ConnectionClosed
+        ));
+        {
+            let control = published_first.lease.shared.control();
+            assert!(control.pending.is_empty());
+            assert!(control.queues.iter().all(VecDeque::is_empty));
+            assert!(control.counts.iter().all(|count| {
+                count.requests == 0 && count.slots == 0 && count.bytes == 0 && count.waiters == 0
+            }));
+        }
+
+        // 响应先完成所有权移交时，随后关闭不能覆盖已经排队的成功结果。
+        let (responded_first, events, _) = fixture(Default::default());
+        drop(events);
+        let mut responded = Box::pin(
+            responded_first
+                .root_session()
+                .send::<Echo>(Payload { value: 3 }),
+        );
+        assert!(poll!(&mut responded).is_pending());
+        response(
+            &responded_first.lease.shared,
+            responded.request_id().unwrap().get(),
+            30,
+        );
+        joined(&responded_first).await;
+        assert_eq!(responded.await.unwrap().value, 30);
+    }
+    #[tokio::test]
     async fn overflow_terminal_has_priority_and_holds_subscription_slot() {
         let mut options = RuntimeOptions::default();
         options.initial_events.max_events = 1;
@@ -2320,6 +2498,112 @@ mod tests {
         assert!(typed.next().await.is_none());
         assert_eq!(all.next().await.unwrap().unwrap().connection_key(), c.key());
         assert_eq!(c.state(), ConnectionState::Open);
+        joined(&c).await;
+    }
+    #[tokio::test]
+    async fn registration_completion_delivers_event_or_explicit_terminal_without_lost_wakeup() {
+        let (c, mut source, _) = fixture(Default::default());
+        receive(
+            &c.lease.shared,
+            Bytes::from_static(br#"{"method":"Echo.changed","params":{"value":7}}"#),
+        )
+        .unwrap();
+        let event = source.next().await.unwrap().unwrap();
+
+        // 路由快照先于注册取得锁时，新订阅尚不在旧快照中；注册返回后再路由必须可见。
+        let (mut delivered, old_snapshot) = {
+            let barrier = Arc::new(std::sync::Barrier::new(2));
+            let control = c.lease.shared.control();
+            let session = c.root_session();
+            let register_barrier = barrier.clone();
+            let register = std::thread::spawn(move || {
+                register_barrier.wait();
+                session.raw_events(Default::default()).unwrap()
+            });
+            barrier.wait();
+            let old_snapshot = control
+                .all
+                .iter()
+                .filter_map(|id| control.subscriptions.get(id).cloned())
+                .collect::<Vec<_>>();
+            drop(control);
+            (register.join().unwrap(), old_snapshot)
+        };
+        for target in old_snapshot {
+            target.deliver(event.clone());
+        }
+        assert!(poll!(delivered.next()).is_pending());
+        receive(
+            &c.lease.shared,
+            Bytes::from_static(br#"{"method":"Echo.changed","params":{"value":9}}"#),
+        )
+        .unwrap();
+        assert_eq!(
+            delivered.next().await.unwrap().unwrap().params().as_bytes(),
+            br#"{"value":9}"#
+        );
+
+        let mut terminated = c.root_session().raw_events(Default::default()).unwrap();
+        assert!(poll!(terminated.next()).is_pending());
+        terminated
+            .subscriber
+            .terminate(Error::new(ErrorKind::SessionClosed));
+        assert!(matches!(
+            terminated.next().await.unwrap().unwrap_err().kind,
+            ErrorKind::SessionClosed
+        ));
+        joined(&c).await;
+    }
+    #[tokio::test]
+    async fn stale_delivery_snapshot_cannot_requeue_after_subscription_removal() {
+        let (c, mut source, _) = fixture(Default::default());
+        receive(
+            &c.lease.shared,
+            Bytes::from_static(br#"{"method":"Echo.changed","params":{"value":8}}"#),
+        )
+        .unwrap();
+        let event = source.next().await.unwrap().unwrap();
+
+        // 先移除索引再执行已取得的快照：discard gate 必须拒绝迟到投递。
+        let removed_first = c.root_session().raw_events(Default::default()).unwrap();
+        let stale = removed_first.subscriber.clone();
+        drop(removed_first);
+        assert!(!stale.deliver(event.clone()));
+        {
+            let state = stale.state();
+            assert!(state.ended);
+            assert!(state.queue.is_empty());
+        }
+
+        // 快照先看到终态再移除索引：终态同样不能被迟到投递覆盖。
+        let terminal_first = c.root_session().raw_events(Default::default()).unwrap();
+        let stale = terminal_first.subscriber.clone();
+        stale.terminate(Error::new(ErrorKind::SessionClosed));
+        assert!(!stale.deliver(event));
+        drop(terminal_first);
+        {
+            let state = stale.state();
+            assert!(state.ended);
+            assert!(state.queue.is_empty());
+            assert!(state.terminal.is_some());
+        }
+        joined(&c).await;
+    }
+    #[tokio::test]
+    async fn unknown_large_response_only_advances_envelope_sequence() {
+        let (c, events, _) = fixture(Default::default());
+        drop(events);
+        let payload = "x".repeat(4 << 20);
+        receive(
+            &c.lease.shared,
+            Bytes::from(format!(
+                "{{\"id\":987654,\"result\":{{\"payload\":\"{payload}\"}}}}"
+            )),
+        )
+        .unwrap();
+        assert_eq!(c.latest_receive_seq().unwrap().get(), 1);
+        assert_eq!(c.lease.shared.wire_budget.used(), 0);
+        assert!(c.lease.shared.control().pending.is_empty());
         joined(&c).await;
     }
     #[tokio::test]
@@ -2875,6 +3159,219 @@ mod tests {
         assert!(next.request_id().is_some());
         drop(next);
         joined(&c).await;
+    }
+    #[tokio::test]
+    async fn admission_pending_and_outbound_byte_limits_remain_bounded() {
+        let mut options = RuntimeOptions::default();
+        options.limits.normal.requests = 1;
+        options.limits.normal.outbound_slots = 1;
+        options.limits.normal.admission_waiters = 1;
+        let (c, events, _) = fixture(options);
+        drop(events);
+        let active = queue_raw(&c, 1, TrafficClass::Normal);
+        let mut waiting = Box::pin(c.root_session().send::<Echo>(Payload { value: 2 }));
+        assert!(poll!(&mut waiting).is_pending());
+        let mut rejected = Box::pin(c.root_session().send::<Echo>(Payload { value: 3 }));
+        assert!(matches!(
+            poll!(&mut rejected),
+            Poll::Ready(Err(Error {
+                kind: ErrorKind::AdmissionFull,
+                ..
+            }))
+        ));
+        {
+            let control = c.lease.shared.control();
+            assert_eq!(control.pending.len(), 1);
+            assert_eq!(control.waiters.len(), 1);
+            assert_eq!(control.counts[0].waiters, 1);
+        }
+        drop(active);
+        drop(c.lease.shared.pop());
+        assert_eq!(
+            c.lease
+                .shared
+                .control()
+                .waiters
+                .values()
+                .filter(|waiter| waiter.granted)
+                .count(),
+            1
+        );
+        drop(waiting);
+        assert!(c.lease.shared.control().waiters.is_empty());
+        joined(&c).await;
+
+        let mut options = RuntimeOptions::default();
+        options.limits.normal.requests = 2;
+        options.limits.normal.outbound_slots = 2;
+        options.limits.normal.outbound_bytes = 180;
+        options.limits.normal.max_command_bytes = 180;
+        let (c, events, _) = fixture(options);
+        drop(events);
+        let first = queue_raw(&c, 100, TrafficClass::Normal);
+        let params =
+            RawJson::from_bytes(Bytes::from(format!("{{\"text\":\"{}\"}}", "x".repeat(100))))
+                .unwrap();
+        let mut over_budget = Box::pin(c.root_session().send_raw(
+            MethodName::new("Echo.raw".into()).unwrap(),
+            params,
+            Default::default(),
+        ));
+        assert!(matches!(
+            poll!(&mut over_budget),
+            Poll::Ready(Err(Error {
+                kind: ErrorKind::ResourceLimit {
+                    resource: "outbound_bytes"
+                },
+                ..
+            }))
+        ));
+        {
+            let control = c.lease.shared.control();
+            assert_eq!(control.pending.len(), 1);
+            assert_eq!(control.queues[0].len(), 1);
+            assert_eq!(control.counts[0].requests, 1);
+            assert_eq!(control.counts[0].slots, 1);
+            assert!(control.counts[0].bytes <= 180);
+        }
+        drop(first);
+        joined(&c).await;
+    }
+    #[derive(Clone, Copy)]
+    enum ActiveFailure {
+        Read,
+        Write,
+    }
+    struct ActiveFailureReader {
+        mode: ActiveFailure,
+        drops: Arc<AtomicUsize>,
+    }
+    struct ActiveFailureWriter {
+        mode: ActiveFailure,
+        drops: Arc<AtomicUsize>,
+    }
+    struct ActiveFailureTransport {
+        mode: ActiveFailure,
+        drops: Arc<AtomicUsize>,
+    }
+    impl Transport for ActiveFailureTransport {
+        type Reader = ActiveFailureReader;
+        type Writer = ActiveFailureWriter;
+        fn split(self) -> (Self::Reader, Self::Writer) {
+            (
+                ActiveFailureReader {
+                    mode: self.mode,
+                    drops: self.drops.clone(),
+                },
+                ActiveFailureWriter {
+                    mode: self.mode,
+                    drops: self.drops,
+                },
+            )
+        }
+    }
+    impl Drop for ActiveFailureReader {
+        fn drop(&mut self) {
+            self.drops.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    impl Drop for ActiveFailureWriter {
+        fn drop(&mut self) {
+            self.drops.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    impl MessageReader for ActiveFailureReader {
+        async fn recv(&mut self) -> std::result::Result<Option<Bytes>, TransportError> {
+            match self.mode {
+                ActiveFailure::Read => Err(TransportError::new(io::Error::other("读故障注入"))),
+                ActiveFailure::Write => std::future::pending().await,
+            }
+        }
+    }
+    impl MessageWriter for ActiveFailureWriter {
+        async fn send(&mut self, _: Bytes) -> std::result::Result<(), TransportError> {
+            match self.mode {
+                ActiveFailure::Read => Ok(()),
+                ActiveFailure::Write => Err(TransportError::new(io::Error::other("写故障注入"))),
+            }
+        }
+        async fn flush(&mut self) -> std::result::Result<(), TransportError> {
+            Ok(())
+        }
+        async fn close(&mut self) -> std::result::Result<(), TransportError> {
+            Ok(())
+        }
+    }
+    #[tokio::test(start_paused = true)]
+    async fn active_read_and_write_failures_preserve_first_reason_and_release_transport() {
+        for mode in [ActiveFailure::Read, ActiveFailure::Write] {
+            let drops = Arc::new(AtomicUsize::new(0));
+            let (c, events) = Connection::from_transport(
+                ActiveFailureTransport {
+                    mode,
+                    drops: drops.clone(),
+                },
+                RuntimeOptions {
+                    close_timeout: Duration::ZERO,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+            let request = if matches!(mode, ActiveFailure::Write) {
+                let mut request = Box::pin(c.root_session().send::<Echo>(Payload { value: 1 }));
+                assert!(poll!(&mut request).is_pending());
+                Some(request)
+            } else {
+                None
+            };
+            let report = c.closed().await;
+            assert!(matches!(report.reason.kind, ErrorKind::Transport));
+            assert!(report.driver_resources_released);
+            assert!(report.supplemental_errors.len() <= 1);
+            assert_eq!(drops.load(Ordering::SeqCst), 2);
+            if let Some(request) = request {
+                assert!(matches!(
+                    request.await.unwrap_err().kind,
+                    ErrorKind::Transport
+                ));
+            }
+            let task = lock(&c.lease.shared.task).take().unwrap();
+            task.await.unwrap();
+            drop(events);
+        }
+    }
+    struct PanicReader(Arc<AtomicUsize>);
+    struct PanicTransport(Arc<AtomicUsize>);
+    impl Drop for PanicReader {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    impl Transport for PanicTransport {
+        type Reader = PanicReader;
+        type Writer = IdleWriter;
+        fn split(self) -> (Self::Reader, Self::Writer) {
+            (PanicReader(self.0.clone()), IdleWriter(self.0))
+        }
+    }
+    impl MessageReader for PanicReader {
+        async fn recv(&mut self) -> std::result::Result<Option<Bytes>, TransportError> {
+            panic!("Driver 读方向 panic 故障注入")
+        }
+    }
+    #[tokio::test]
+    async fn driver_panic_runs_guard_and_reports_released_transport() {
+        let drops = Arc::new(AtomicUsize::new(0));
+        let (c, events) =
+            Connection::from_transport(PanicTransport(drops.clone()), Default::default()).unwrap();
+        let task = lock(&c.lease.shared.task).take().unwrap();
+        assert!(task.await.unwrap_err().is_panic());
+        let report = c.closed().await;
+        assert!(matches!(report.reason.kind, ErrorKind::DriverFailed));
+        assert_eq!(report.transport_end, TransportEnd::Failed);
+        assert!(report.driver_resources_released);
+        assert_eq!(drops.load(Ordering::SeqCst), 2);
+        drop(events);
     }
     #[derive(Clone, Copy)]
     enum CloseMode {
@@ -3500,6 +3997,58 @@ mod tests {
         .await
         .expect("压力测试超时保护触发，需调查进展停滞");
         print_stress_report("deterministic-100000", &report);
+    }
+
+    #[tokio::test]
+    async fn slow_consumer_large_messages_and_unresponsive_endpoint_stay_bounded() {
+        let large_padding = "x".repeat(128 << 10);
+        let first_event = Bytes::from(format!(
+            "{{\"method\":\"Echo.changed\",\"params\":{{\"value\":1,\"padding\":\"{large_padding}\"}}}}"
+        ));
+        let second_event = Bytes::from(format!(
+            "{{\"method\":\"Echo.changed\",\"params\":{{\"value\":2,\"padding\":\"{large_padding}\"}}}}"
+        ));
+        let first_len = first_event.len();
+        let mut options = RuntimeOptions {
+            initial_events: SubscriptionOptions {
+                max_events: 1,
+                max_bytes: first_len + 1,
+            },
+            ..Default::default()
+        };
+        options.limits.wire_bytes = first_len * 2;
+        let (connection, mut slow_events, _) = fixture(options);
+        let shared = connection.lease.shared.clone();
+
+        // IdleTransport 永不返回响应，模拟永久无响应端点；Request 的外部 Drop 只取消本地等待。
+        let mut unanswered = Box::pin(connection.root_session().send::<Echo>(Payload { value: 7 }));
+        assert!(poll!(&mut unanswered).is_pending());
+        assert!(unanswered.request_id().is_some());
+        assert_eq!(shared.control().pending.len(), 1);
+
+        // 首条大事件由未消费的全连接流持有，第二条触发独立终态而不阻塞 Reader。
+        receive(&shared, first_event).unwrap();
+        assert_eq!(shared.wire_budget.used(), first_len);
+        assert_eq!(shared.control().subscription_count, 1);
+        receive(&shared, second_event).unwrap();
+        assert!(shared.wire_budget.used() <= first_len);
+
+        drop(unanswered);
+        assert!(shared.control().pending.is_empty());
+        assert!(matches!(
+            slow_events.next().await.unwrap().unwrap_err().kind,
+            ErrorKind::EventBufferFull
+        ));
+        assert!(slow_events.next().await.is_none());
+        drop(slow_events);
+        // 端点已经接收命令但永久不响应；测试线程接管并释放尚未由 Driver 写出的帧。
+        drop(shared.pop());
+        assert_stress_quiescent(&shared, 0);
+
+        joined(&connection).await;
+        assert!(shared.control().routes.is_empty());
+        assert!(shared.control().retired.is_empty());
+        assert_eq!(shared.wire_budget.used(), 0);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

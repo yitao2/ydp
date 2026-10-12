@@ -5,4 +5,4 @@ schema_roots = ["."]
 
 [[inputs]]
 path = "echo.json"
-sha256 = "a78fe25736c5eb92b393935e699d4f3cb777562371a1d68695b98325e3eec9bd"
+sha256 = "3b31c30f07f40521d13ae52d05fa26d5b7480734e13106c8001b762973c4f083"

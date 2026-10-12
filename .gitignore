@@ -1,6 +1,9 @@
 /target/
 **/target/
 *.profraw
+/fuzz/artifacts/
+/fuzz/coverage/
+/fuzz/target/
 
 # Target 是协议域源码，不能按 Cargo 产物目录忽略。
 !crates/ydp/src/generated/target/
