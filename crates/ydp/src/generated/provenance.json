@@ -1,0 +1,24 @@
+{
+  "generated_contract_version": 1,
+  "generator_version": "0.1.0-alpha.2",
+  "binding_package": "ydp",
+  "inputs": [
+    {
+      "path": "json/browser_protocol.json",
+      "sha256": "7a707daef67560ed7e3ab01c30afc324701abb7a5ea71db3b6c32bb162e5d8be",
+      "version": {
+        "major": "1",
+        "minor": "3"
+      }
+    },
+    {
+      "path": "json/js_protocol.json",
+      "sha256": "cf124bf143bf361a7900bcfeea3926c1cfcc1da36d83756c228c43d84321539a",
+      "version": {
+        "major": "1",
+        "minor": "3"
+      }
+    }
+  ],
+  "configuration_sha256": "2bd790c6d66afae87a104a22980e9283b2429d36bba87b91c731e482466d28bd"
+}

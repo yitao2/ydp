@@ -1,0 +1,12 @@
+format = 1
+runtime_crate = "ydp_core"
+generated_crate = "ydp"
+schema_roots = ["."]
+
+[[inputs]]
+path = "pdl/browser_protocol.pdl"
+sha256 = "7d6b626ced3287a0fc6b6991e1b3b1ed944fcb5654bf305639c4cf1d86db66da"
+
+[[inputs]]
+path = "pdl/js_protocol.pdl"
+sha256 = "c95dc145912a71b09f037e2cf3e0c5e3618bce70419aa5bdf38a5ad753b7bb95"

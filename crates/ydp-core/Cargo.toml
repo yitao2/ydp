@@ -1,0 +1,47 @@
+[package]
+name = "ydp-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "A bounded, async-only runtime for Chrome DevTools Protocol communication"
+readme = "README.md"
+documentation = "https://docs.rs/ydp-core"
+keywords = ["cdp", "chromium", "devtools", "async", "websocket"]
+categories = ["api-bindings", "asynchronous", "network-programming"]
+
+[lints]
+workspace = true
+
+[features]
+default = ["websocket", "rustls"]
+websocket = ["dep:tokio-tungstenite"]
+rustls = ["websocket", "dep:rustls", "dep:webpki-roots", "dep:rustls-pemfile", "tokio-tungstenite/rustls-tls-webpki-roots"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+bytes.workspace = true
+tokio.workspace = true
+futures-core.workspace = true
+futures-util.workspace = true
+thiserror.workspace = true
+pin-project-lite.workspace = true
+
+bytestring = "1"
+
+tokio-tungstenite = { version = "0.30", optional = true, default-features = false, features = ["connect", "handshake"] }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = { version = "1", optional = true }
+rustls-pemfile = { version = "2", optional = true }
+
+[dev-dependencies]
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rcgen = "0.14"
+
+[[bench]]
+name = "runtime"
+harness = false

@@ -1,0 +1,8 @@
+format = 1
+runtime_crate = "ydp_core"
+generated_crate = "ydp_echo_tests"
+schema_roots = ["."]
+
+[[inputs]]
+path = "echo.json"
+sha256 = "a78fe25736c5eb92b393935e699d4f3cb777562371a1d68695b98325e3eec9bd"

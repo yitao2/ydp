@@ -1,0 +1,33 @@
+[package]
+name = "ydp-gen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "An offline, reproducible Rust code generator for CDP-compatible schemas"
+readme = "README.md"
+documentation = "https://docs.rs/ydp-gen"
+keywords = ["cdp", "chromium", "codegen", "protocol", "generator"]
+categories = ["development-tools::build-utils", "api-bindings"]
+exclude = ["tests/official_development.rs"]
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml = "0.9"
+sha2 = "0.10"
+quote = "1"
+syn = { version = "2", features = ["full"] }
+proc-macro2 = "1"
+prettyplease = "0.2"
+heck = "0.5"
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

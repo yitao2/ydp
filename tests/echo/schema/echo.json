@@ -1,0 +1,109 @@
+{
+  "version": {
+    "major": "1",
+    "minor": "0"
+  },
+  "domains": [
+    {
+      "domain": "Echo",
+      "types": [
+        {
+          "id": "Record",
+          "type": "object",
+          "properties": [
+            {
+              "name": "text",
+              "type": "string"
+            },
+            {
+              "name": "note",
+              "type": "string",
+              "optional": true
+            },
+            {
+              "name": "extra",
+              "type": "any",
+              "optional": true
+            },
+            {
+              "name": "maybe",
+              "type": "string",
+              "x-cdp-rs": {
+                "nullable": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "Label",
+          "type": "string"
+        },
+        {
+          "id": "Mode",
+          "type": "string",
+          "enum": [
+            "ready",
+            "Unknown",
+            "future"
+          ]
+        },
+        {
+          "id": "Closed",
+          "type": "object",
+          "additionalProperties": false
+        },
+        {
+          "id": "MaybeRecord",
+          "type": "object",
+          "x-cdp-rs": {
+            "nullable": true
+          },
+          "properties": [
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "id": "MaybeMode",
+          "type": "string",
+          "enum": [
+            "ready"
+          ],
+          "x-cdp-rs": {
+            "nullable": true
+          }
+        }
+      ],
+      "commands": [
+        {
+          "name": "echo",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ],
+          "returns": [
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "name": "echoed",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

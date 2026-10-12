@@ -1,0 +1,2 @@
+# 上游固定快照保持原始字节，不要求删除源文件已有的末尾空行。
+protocol/official/** whitespace=-blank-at-eof
